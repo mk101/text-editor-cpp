@@ -6,6 +6,7 @@
 #include <fstream>
 #include<stack>
 #include<string>
+#include <exception>
 
 typedef TText* PTText;
 
@@ -23,7 +24,9 @@ public:
 	~TText() {
 		pFirst = NULL;
 	}
-	PTText getCopy();//?
+	TText(const TText& t) = delete;
+	TText& operator=(const TText& t) = delete;
+	PTText getCopy();
 
 	int GoFirstLink(void);
 	int GoDownLink(void);
@@ -46,6 +49,6 @@ public:
 	int GoNext(void);
 	void Read(char* pFileName);
 	void Write(char* pFileName);
-	void Print(void);
+	void Print(std::ostream &stream);
 };
 
