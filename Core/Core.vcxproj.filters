@@ -18,9 +18,21 @@
     <ClInclude Include="core.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TDataCom.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TDatValue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TText.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TTextMem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="core.cpp">
+    <ClCompile Include="TText.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
