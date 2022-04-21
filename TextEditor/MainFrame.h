@@ -11,6 +11,11 @@ enum class MainFrameMenuId {
 	ID_OpenFile = 1
 };
 
+enum {
+	MARGIN_LINE_NUMBERS,
+	MARGIN_FOLD
+};
+
 class MainFrame : public wxFrame {
 public:
 	MainFrame();
@@ -20,5 +25,9 @@ private:
 
 	void OnOpenFile(wxCommandEvent& event);
 	void OnExit(wxCommandEvent& event);
+
+	// Use https://github.com/akamud/vscode-theme-onelight colors
+	void SetTextStyle();
+	void EnableCodeFolding();
 };
 
