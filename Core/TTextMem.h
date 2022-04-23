@@ -2,8 +2,8 @@
 #include <iostream>
 #include "TDatValue.h"
 
-#define TextOK 0;
-#define TextNoDown 101;
+#define TextOK 0
+#define TextNoDown 101
 #define TextNoNext 102
 #define TextNoPrev 103
 
@@ -15,11 +15,11 @@ class TText;
 class TTextLink;
 
 typedef TTextLink* PTTtextLink;
-typedef char Tstr[(TextLineLength)];
+typedef char Tstr[(TextLineLength)];//харнит строчку
 class TTextMem {
     PTTtextLink pfirst;
     PTTtextLink plast;
-    PTTtextLink pFree;
+    PTTtextLink pFree;//первый свобоныйй эл-т
     friend class TTextLink;
 
 };
@@ -28,8 +28,8 @@ class TTextLink : public TDatValue {
 protected:
     PTTtextLink PNext, PDown;
     Tstr str;
-    static TTextMem MemHeader;
-    friend class TText;
+    static TTextMem MemHeader;//кусок оперативной памяти для работы
+    friend class TText;//для приватов и протектов указывать дружественный класс
 public:
 
     static void InitMemSystem(int size = Memsize) {
@@ -66,7 +66,7 @@ public:
 
     }
 
-    TTextLink(Tstr s = NULL, PTTtextLink pn = NULL, PTTtextLink pd = NULL) {
+    TTextLink(const Tstr s = NULL, PTTtextLink pn = NULL, PTTtextLink pd = NULL) {
         PNext = pn;
         PDown = pd;
         if (s != NULL) {

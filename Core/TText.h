@@ -12,13 +12,14 @@ typedef TText* PTText;
 
 class TText :public TDataCom {
 protected:
-	PTTtextLink pFirst;
-	PTTtextLink pCurrent;
-	std::stack<PTTtextLink> Path;
-	std::stack<PTTtextLink> St;
-	PTTtextLink GetFirstAtom(PTTtextLink pl);
-	void PrintText(PTTtextLink ptl, std::ostream& out);
-	PTTtextLink ReadText(std::ifstream& Txtfile);
+	PTTtextLink pFirst;// указатель корня дерева
+	PTTtextLink pCurrent;//указатель текущей строки
+	std::stack<PTTtextLink> Path;// стек траектории движения по тексту
+	std::stack<PTTtextLink> St;// стек для итератора
+	PTTtextLink GetFirstAtom(PTTtextLink pl);// поиск первой строки
+	std::stringstream PrintText(PTTtextLink ptl);// печать текста со звена ptl
+	PTTtextLink ReadText(std::ifstream& Txtfile); //чтение текста из файла
+
 public:
 	TText(PTTtextLink pl = NULL);
 	~TText() {
@@ -28,27 +29,27 @@ public:
 	TText& operator=(const TText& t) = delete;
 	PTText getCopy();
 
-	int GoFirstLink(void);
-	int GoDownLink(void);
-	int GoNextLink(void);
-	int GoPrevLink(void);
+	int GoFirstLink(void);// переход к первой строке
+	int GoDownLink(void);// переход к следующей строке по Down
+	int GoNextLink(void);// переход к следующей строке по Next
+	int GoPrevLink(void);// переход к предыдущей позиции в тексте
 
-	std::string GetLine(void);
-	void SetLine(std::string s);
+	std::string GetLine(void); // чтение текущей строки
+	void SetLine(std::string s);// замена текущей строки
 
-	void InsDownLine(std::string s);
-	void InsDownSection(std::string s);
-	void InsNextLine(std::string s);
-	void InsNextSection(std::string s);
-	void DelDownLine(void);
-	void DelDownSection(void);
-	void DelNextLine(void);
-	void DelNextSection(void);
-	int Reset(void);
+	void InsDownLine(std::string s);// вставка строки в подуровень
+	void InsDownSection(std::string s);// вставка раздела в подуровень
+	void InsNextLine(std::string s);// вставка строки в том же уровне
+	void InsNextSection(std::string s);// вставка раздела в том же уровне
+	void DelDownLine(void);// удаление строки в подуровне
+	void DelDownSection(void); // удаление раздела в подуровне
+	void DelNextLine(void);// удаление строки в том же уровне
+	void DelNextSection(void);// удаление раздела в том же уровне
+	int Reset(void); // установить на первую звапись
 	int IsTextEnded(void) const;
-	int GoNext(void);
-	void Read(char* pFileName);
-	void Write(char* pFileName);
-	void Print(std::ostream &stream);
+	int GoNext(void);// переход к следующей записи
+	void Read(char* pFileName);// ввод текста из файла
+	void Write(char* pFileName);// вывод текста в файл
+	void Print(std::ostream &stream);// печать текста
 };
 
