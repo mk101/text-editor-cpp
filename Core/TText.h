@@ -17,8 +17,8 @@ protected:
 	std::stack<PTTtextLink> Path;
 	std::stack<PTTtextLink> St;
 	PTTtextLink GetFirstAtom(PTTtextLink pl);
-	void PrintText(PTTtextLink ptl);
-	PTTtextLink ReadText(std::ifstream);
+	void PrintText(PTTtextLink ptl, std::ostream& out);
+	PTTtextLink ReadText(std::ifstream& Txtfile);
 public:
 	TText(PTTtextLink pl = NULL);
 	~TText() {
