@@ -15,17 +15,20 @@ PTTtextLink TText::GetFirstAtom(PTTtextLink pl)
 std::stringstream TText::PrintText(PTTtextLink ptl)
 {
     static int level = 0;
-    const int space_size = 4;
+    const int space_size = 2;
 
     PTTtextLink pLink = ptl;
     std::stringstream ss;
     while (pLink != nullptr) {
 
         ss << std::string(space_size * level, ' ');
-        pLink->Print(ss);
+
+        //pLink->Print(ss);
+        ss << pLink->str;
+        
         ss << std::endl;
 
-        if (pLink->pDown != nullptr) {
+        if (pLink->PDown != nullptr) {
             ss << std::string(space_size * level, ' ') << '{' << std::endl;
             level++;
             ss << PrintText(pLink->PDown).rdbuf();
@@ -33,7 +36,7 @@ std::stringstream TText::PrintText(PTTtextLink ptl)
             ss << std::string(space_size * level, ' ') << '}' << std::endl;
         }
 
-        pLink = pLink->pNext;
+        pLink = pLink->PNext;
     }
 
 
@@ -45,11 +48,26 @@ PTTtextLink TText::ReadText(std::ifstream& Txtfile)
 {
     char Strbuff[TextLineLength];
     int Buflength = TextLineLength;
-    int textlevel;
+    int textlevel = 0;
     PTTtextLink PHead, ptl;
     PHead = ptl = new TTextLink();
     while (Txtfile.eof() == 0) {
         Txtfile.getline(Strbuff, Buflength, '\n');
+
+        std::string buf = Strbuff;
+        size_t count = 0;
+        for (size_t i = 0; i < buf.size(); i++) {
+            if (buf.at(i) != ' ') {
+                break;
+            }
+
+            count++;
+        }
+
+        buf.erase(0, count);
+        
+        strcpy(Strbuff, buf.c_str());
+
         if (Strbuff[0] == '}') {
             textlevel--;
             break;
@@ -64,7 +82,7 @@ PTTtextLink TText::ReadText(std::ifstream& Txtfile)
         }
     }
     ptl = PHead;
-    if (PHead->PDown = nullptr) {
+    if (PHead->PDown == nullptr) {
         PHead = PHead->PNext;
         delete ptl;
     }
@@ -119,16 +137,22 @@ int TText::GoNext(void)
     return IsTextEnded();
 }
 
-void TText::Read(char* pFileName) {
-	throw std::runtime_error("No implementation");
+void TText::Read(const char* pFileName) {
+    std::ifstream file(pFileName);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("File not found");
+    }
+
+    pFirst = ReadText(file);
 }
 
-void TText::Write(char* pFileName) {
+void TText::Write(const char* pFileName) {
 	throw std::runtime_error("No implementation");
 }
 
 void TText::Print(std::ostream& stream) {
-	throw std::runtime_error("No implementation");
+    stream << PrintText(pFirst).str();
 }
 
 PTText TText::getCopy()

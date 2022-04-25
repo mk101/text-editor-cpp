@@ -28,7 +28,7 @@ class TTextLink : public TDatValue {
 protected:
     PTTtextLink PNext, PDown;
     Tstr str;
-    static TTextMem MemHeader;//кусок оперативной памяти для работы
+    inline static TTextMem MemHeader;//кусок оперативной памяти для работы
     friend class TText;//для приватов и протектов указывать дружественный класс
 public:
 
@@ -37,7 +37,7 @@ public:
         MemHeader.pFree = MemHeader.pfirst;
         MemHeader.plast = MemHeader.pfirst + (size - 1);
         PTTtextLink pLink = MemHeader.pfirst;
-        for (int i = 0; i < size; pLink++, i++) {
+        for (int i = 0; i < size - 1; pLink++, i++) {
             pLink->PNext = pLink + 1;
         }
         pLink->PNext = nullptr;

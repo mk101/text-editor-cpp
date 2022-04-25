@@ -7,6 +7,8 @@
 #include <wx/stc/stc.h>
 #include <wx/wfstream.h>
 
+#include <core.h>
+
 enum class MainFrameMenuId {
 	ID_OpenFile = 1
 };
@@ -21,6 +23,7 @@ public:
 	MainFrame();
 private:
 	wxStyledTextCtrl *m_TextCtrl;
+	TText m_Text;
 	void InitMenu();
 
 	void OnOpenFile(wxCommandEvent& event);

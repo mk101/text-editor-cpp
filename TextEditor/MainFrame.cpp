@@ -1,6 +1,6 @@
 #include "MainFrame.h"
 
-MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, "Text editor") {
+MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, "Text editor"), m_Text() {
 	InitMenu();
 
 	CreateStatusBar();
@@ -41,7 +41,7 @@ void MainFrame::OnOpenFile(wxCommandEvent& event) {
 		return;
 	}
 
-	wxFileInputStream inputStream(ofd.GetPath());
+	/*wxFileInputStream inputStream(ofd.GetPath());
 	if (!inputStream.IsOk()) {
 		wxLogError("Cannot open file '%s'", ofd.GetPath());
 		return;
@@ -53,9 +53,11 @@ void MainFrame::OnOpenFile(wxCommandEvent& event) {
 	buf[size] = '\0';
 
 	wxString text = wxString::FromAscii(buf);
-	delete[] buf;
-
-	m_TextCtrl->AddText(text);
+	delete[] buf;*/
+	m_Text.Read(ofd.GetPath().mb_str(wxConvUTF8));
+	std::stringstream ss;
+	m_Text.Print(ss);
+	m_TextCtrl->AddText(ss.str());
 
 	//m_TextCtrl->AddText(inputStream.Read)
 }

@@ -6,6 +6,7 @@
 #include <fstream>
 #include<stack>
 #include<string>
+#include <sstream>
 #include <exception>
 
 typedef TText* PTText;
@@ -48,8 +49,8 @@ public:
 	int Reset(void); // установить на первую звапись
 	int IsTextEnded(void) const;
 	int GoNext(void);// переход к следующей записи
-	void Read(char* pFileName);// ввод текста из файла
-	void Write(char* pFileName);// вывод текста в файл
+	void Read(const char* pFileName);// ввод текста из файла
+	void Write(const char* pFileName);// вывод текста в файл
 	void Print(std::ostream &stream);// печать текста
 };
 
