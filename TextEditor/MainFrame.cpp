@@ -1,6 +1,7 @@
 #include "MainFrame.h"
 
-MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, "Text editor"), m_Text() {
+MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, "Text editor"), 
+						 m_Text(new TTextLink("", nullptr, nullptr)) {
 	InitMenu();
 
 	CreateStatusBar();
@@ -8,6 +9,8 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, "Text editor"), m_Text() {
 
 	m_TextCtrl = new wxStyledTextCtrl(this, wxID_ANY);
 	SetTextStyle();
+	//m_TextCtrl->Bind(wxEVT_STC_CHARADDED, &MainFrame::OnCharAdded);
+	m_TextCtrl->Connect(wxEVT_STC_CHARADDED, wxStyledTextEventHandler(MainFrame::OnCharAdded), NULL, this);
 
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(m_TextCtrl, 1, wxEXPAND);
@@ -41,19 +44,6 @@ void MainFrame::OnOpenFile(wxCommandEvent& event) {
 		return;
 	}
 
-	/*wxFileInputStream inputStream(ofd.GetPath());
-	if (!inputStream.IsOk()) {
-		wxLogError("Cannot open file '%s'", ofd.GetPath());
-		return;
-	}
-	
-	size_t size = inputStream.GetSize();
-	char *buf = new char[size + 1];
-	inputStream.Read((void*)buf, size);
-	buf[size] = '\0';
-
-	wxString text = wxString::FromAscii(buf);
-	delete[] buf;*/
 	m_Text.Read(ofd.GetPath().mb_str(wxConvUTF8));
 	std::stringstream ss;
 	m_Text.Print(ss);
@@ -64,6 +54,13 @@ void MainFrame::OnOpenFile(wxCommandEvent& event) {
 
 void MainFrame::OnExit(wxCommandEvent& event) {
 	Close(true);
+}
+
+void MainFrame::OnCharAdded(wxStyledTextEvent& evt) {
+	char c = evt.GetKey();
+
+	std::string s(m_TextCtrl->GetLine(0));
+	int a = 0;
 }
 
 void MainFrame::SetTextStyle() {
@@ -150,3 +147,9 @@ void MainFrame::EnableCodeFolding() {
 	m_TextCtrl->MarkerSetForeground(wxSTC_MARKNUM_FOLDERTAIL, grey);
 	m_TextCtrl->MarkerSetBackground(wxSTC_MARKNUM_FOLDERTAIL, grey);
 }
+
+//wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
+//
+//EVT_STC(wxEVT_STC_CHARADDED, MainFrame::OnCharAdded)
+//
+//wxEND_EVENT_TABLE()

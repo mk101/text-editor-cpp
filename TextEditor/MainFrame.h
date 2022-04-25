@@ -10,7 +10,8 @@
 #include <core.h>
 
 enum class MainFrameMenuId {
-	ID_OpenFile = 1
+	ID_OpenFile = 1,
+	ID_CharAdded = 2
 };
 
 enum {
@@ -29,8 +30,12 @@ private:
 	void OnOpenFile(wxCommandEvent& event);
 	void OnExit(wxCommandEvent& event);
 
+	void OnCharAdded(wxStyledTextEvent& event);
+
 	// Use https://github.com/akamud/vscode-theme-onelight colors
 	void SetTextStyle();
 	void EnableCodeFolding();
+
+	//wxDECLARE_EVENT_TABLE();
 };
 

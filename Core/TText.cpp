@@ -26,7 +26,9 @@ std::stringstream TText::PrintText(PTTtextLink ptl)
         //pLink->Print(ss);
         ss << pLink->str;
         
-        ss << std::endl;
+        if (pLink->PNext != nullptr || pLink->PDown != nullptr) {
+            ss << std::endl;
+        }
 
         if (pLink->PDown != nullptr) {
             ss << std::string(space_size * level, ' ') << '{' << std::endl;
@@ -39,6 +41,9 @@ std::stringstream TText::PrintText(PTTtextLink ptl)
         pLink = pLink->PNext;
     }
 
+    if (level > 0) {
+        ss << std::endl;
+    }
 
     return ss;
 
