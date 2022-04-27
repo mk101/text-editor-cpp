@@ -2,27 +2,49 @@
 
 MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, "Text editor"), 
 						 m_Text(new TTextLink("", nullptr, nullptr)) {
+	m_PathToFile = "";
+	m_Text.Reset();
+
 	InitMenu();
 
 	CreateStatusBar();
-	SetStatusText("TBC");
+	//SetStatusText("TBC");
 
 	m_TextCtrl = new wxStyledTextCtrl(this, wxID_ANY);
 	SetTextStyle();
 	//m_TextCtrl->Bind(wxEVT_STC_CHARADDED, &MainFrame::OnCharAdded);
 	m_TextCtrl->Connect(wxEVT_STC_CHARADDED, wxStyledTextEventHandler(MainFrame::OnCharAdded), NULL, this);
+	m_TextCtrl->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrame::OnKeyDown), NULL, this);
+	m_TextCtrl->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MainFrame::OnMouseDown), NULL, this);
+	m_TextCtrl->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(MainFrame::OnMouseDown), NULL, this);
 
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(m_TextCtrl, 1, wxEXPAND);
 	SetSizer(sizer);
 
 	Bind(wxEVT_MENU, &MainFrame::OnOpenFile, this, (int)MainFrameMenuId::ID_OpenFile);
+	Bind(wxEVT_MENU, &MainFrame::OnSaveFile, this, (int)MainFrameMenuId::ID_SaveFile);
+	Bind(wxEVT_MENU, &MainFrame::OnExecute, this, (int)MainFrameMenuId::ID_Exec);
 	Bind(wxEVT_MENU, &MainFrame::OnExit, this, wxID_EXIT);
+}
+
+char MainFrame::GetPressedChar(wxKeyEvent& e) const {
+	char base = e.m_keyCode;
+
+	bool isLower = e.m_shiftDown;
+
+	if (isLower) {
+		base = tolower(base);
+	}
+
+	return base;
 }
 
 void MainFrame::InitMenu() {
 	wxMenu* menuFile = new wxMenu;
-	menuFile->Append((int)MainFrameMenuId::ID_OpenFile, "&Open File\tCtrl+O");
+	menuFile->Append((int)MainFrameMenuId::ID_OpenFile, "&Open File");
+	menuFile->Append((int)MainFrameMenuId::ID_SaveFile, "&Save File");
+	menuFile->Append((int)MainFrameMenuId::ID_Exec, "&Execude File");
 	menuFile->AppendSeparator();
 	menuFile->Append(wxID_EXIT);
 	wxMenuBar* menuBar = new wxMenuBar;
@@ -44,12 +66,68 @@ void MainFrame::OnOpenFile(wxCommandEvent& event) {
 		return;
 	}
 
+	m_PathToFile = ofd.GetPath().mb_str(wxConvUTF8);
+	SetStatusText(m_PathToFile);
+
 	m_Text.Read(ofd.GetPath().mb_str(wxConvUTF8));
 	std::stringstream ss;
 	m_Text.Print(ss);
-	m_TextCtrl->AddText(ss.str());
+	m_TextCtrl->SetText(ss.str());
+	m_TextCtrl->SetSelectionEnd(0);
+	m_CurLinePosition = 0;
+	m_Text.Reset();
 
 	//m_TextCtrl->AddText(inputStream.Read)
+}
+
+void MainFrame::OnSaveFile(wxCommandEvent& event) {
+	wxFileDialog sfd(
+		this,
+		("Save js file"),
+		wxEmptyString,
+		wxEmptyString,
+		"JavaScripts files (*.js)|*.js",
+		wxFD_SAVE
+	);
+
+	if (sfd.ShowModal() == wxID_CANCEL) {
+		return;
+	}
+
+	std::stringstream ss;
+	m_Text.Print(ss);
+
+	m_PathToFile = sfd.GetPath().mb_str(wxConvUTF8);
+	SetStatusText(m_PathToFile);
+
+	std::ofstream file(m_PathToFile);
+	file << ss.str();
+	file.close();
+}
+
+void MainFrame::OnExecute(wxCommandEvent& event) {
+	if (m_PathToFile == "") {
+		return;
+	}
+
+	AllocConsole();
+	freopen("conin$", "r", stdin);
+	freopen("conout$", "w", stdout);
+	freopen("conout$", "w", stderr);
+
+	//std::string command = "node -e \"";
+
+	//std::stringstream ss;
+	//m_Text.PrintInline(ss);
+
+	//command += ss.str();
+
+	//command += '\"';
+	//const char* c = command.c_str();
+
+	std::string command = "node " + m_PathToFile;
+	int r = system(command.c_str());
+	FreeConsole();
 }
 
 void MainFrame::OnExit(wxCommandEvent& event) {
@@ -57,9 +135,182 @@ void MainFrame::OnExit(wxCommandEvent& event) {
 }
 
 void MainFrame::OnCharAdded(wxStyledTextEvent& evt) {
-	char c = evt.GetKey();
+	std::string buf = m_TextCtrl->GetCurLine().ToStdString();
 
-	std::string s(m_TextCtrl->GetLine(0));
+	size_t count = 0;
+	for (size_t i = 0; i < buf.size(); i++) {
+		if (buf.at(i) != '\t') {
+			break;
+		}
+
+		count++;
+	}
+	buf.erase(0, count);
+
+	if (buf[buf.size() - 1] == '\n') {
+		buf.pop_back();
+	}
+
+	m_Text.SetLine(buf);
+	m_CurLinePosition++;
+
+	return;
+}
+
+/*
+ * 8 - backspace
+ * 13 - enter
+ * 316 - right arrow
+ * 314 - left arrow
+ * 315 - up arrow
+ * 317 - down arrow
+ */
+void MainFrame::OnKeyDown(wxKeyEvent &evt) {
+	//int curPosition = m_TextCtrl->GetCurP
+	
+	switch (evt.GetKeyCode()) {
+	case 315:
+	case 317:
+		return;
+	case 316:
+		if (m_CurLinePosition == m_Text.GetLine().size()) {
+			if (m_Text.IsTextEnded()) {
+				return;
+			}
+			m_Text.GoNext();
+			m_CurLinePosition = 0;
+
+			m_TextCtrl->CharRight();
+			if (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '{' || m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '}') {
+				m_TextCtrl->CharRight();
+				m_TextCtrl->CharRight();
+			}
+
+			while (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '\t') {
+				m_TextCtrl->CharRight();
+			}
+
+			return;
+		}
+		
+		m_TextCtrl->CharRight();
+		m_CurLinePosition++;
+		return;
+	case 314:
+		if (m_CurLinePosition == 0) {
+			if (m_TextCtrl->GetCurrentPos() == 0) {
+				return;
+			}
+
+			m_TextCtrl->CharLeft();
+
+			while (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '\t') {
+				m_TextCtrl->CharLeft();
+			}
+
+
+			if (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos() - 1) == '{' || m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos() - 1) == '}') {
+				m_TextCtrl->CharLeft();
+				m_TextCtrl->CharLeft();
+			}
+
+
+			m_Text.GoPrev();
+			m_CurLinePosition = m_Text.GetLine().size();
+			return;
+		}
+
+		m_TextCtrl->CharLeft();
+		m_CurLinePosition--;
+		return;
+	case 8:
+		if (m_CurLinePosition != 0) {
+			m_TextCtrl->DeleteBack();
+			std::string buf = m_TextCtrl->GetCurLine().ToStdString();
+
+			size_t count = 0;
+			for (size_t i = 0; i < buf.size(); i++) {
+				if (buf.at(i) != '\t') {
+					break;
+				}
+
+				count++;
+			}
+			buf.erase(0, count);
+
+			if (buf[buf.size() - 1] == '\n') {
+				buf.pop_back();
+			}
+
+			m_Text.SetLine(buf);
+			m_CurLinePosition--;
+			return;
+		}
+
+		if (m_Text.GetLine().size() == 0) {
+			m_Text.DelCurrent();
+			TTextLink::MemCleaner(m_Text);
+
+			std::stringstream ss;
+			m_Text.Print(ss);
+			m_TextCtrl->SetText(ss.str());
+			m_TextCtrl->SetSelectionEnd(0);
+			m_CurLinePosition = 0;
+			m_Text.Reset();
+		}
+
+		return;
+	case 13:
+		auto pos = m_TextCtrl->GetCurrentPos();
+		m_Text.InsNextSection("");
+		std::stringstream ss;
+		m_Text.Print(ss);
+		m_TextCtrl->SetText(ss.str());
+		m_TextCtrl->SetSelectionEnd(0);
+		m_CurLinePosition = 0;
+		m_Text.Reset();
+
+		return;
+	}
+
+	evt.Skip();
+
+	//if (evt.IsKeyInCategory(
+	//	wxKeyCategoryFlags::WXK_CATEGORY_ARROW		|
+	//	wxKeyCategoryFlags::WXK_CATEGORY_CUT		|
+	//	wxKeyCategoryFlags::WXK_CATEGORY_JUMP       |
+	//	wxKeyCategoryFlags::WXK_CATEGORY_NAVIGATION |
+	//	wxKeyCategoryFlags::WXK_CATEGORY_PAGING		|
+	//	wxKeyCategoryFlags::WXK_CATEGORY_TAB
+	//)) {
+	//	return;
+	//}
+	//
+	//m_TextCtrl->AddText(GetPressedChar(evt));
+
+	//std::string buf = m_TextCtrl->GetCurLine().ToStdString();
+
+	//size_t count = 0;
+	//for (size_t i = 0; i < buf.size(); i++) {
+	//	if (buf.at(i) != '\t') {
+	//		break;
+	//	}
+
+	//	count++;
+	//}
+	//buf.erase(0, count);
+
+	//if (buf[buf.size() - 1] == '\n') {
+	//	buf.pop_back();
+	//}
+
+	//m_Text.SetLine(buf);
+	//m_CurLinePosition++;
+
+	//evt.Skip();
+}
+
+void MainFrame::OnMouseDown(wxMouseEvent& evt) {
 	int a = 0;
 }
 
@@ -79,7 +330,6 @@ void MainFrame::SetTextStyle() {
 		m_TextCtrl->StyleSetSize(i, 12);
 	}
 	
-
 	m_TextCtrl->SetMarginWidth(MARGIN_LINE_NUMBERS, 20);
 	m_TextCtrl->SetMarginType(MARGIN_LINE_NUMBERS, wxSTC_MARGIN_NUMBER);
 
