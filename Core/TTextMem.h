@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include "TDatValue.h"
-
+#include"TText.h"
 #define TextOK 0
 #define TextNoDown 101
 #define TextNoNext 102
@@ -15,11 +15,11 @@ class TText;
 class TTextLink;
 
 typedef TTextLink* PTTtextLink;
-typedef char Tstr[(TextLineLength)];//харнит строчку
+typedef char Tstr[(TextLineLength)];//хранит строчку
 class TTextMem {
     PTTtextLink pfirst;
     PTTtextLink plast;
-    PTTtextLink pFree;//первый свобоныйй эл-т
+    PTTtextLink pFree;//первый свобоный эл-т
     friend class TTextLink;
 
 };
@@ -28,7 +28,7 @@ class TTextLink : public TDatValue {
 protected:
     PTTtextLink PNext, PDown;
     Tstr str;
-    static TTextMem MemHeader;//кусок оперативной памяти для работы
+    inline static TTextMem MemHeader;//кусок оперативной памяти для работы
     friend class TText;//для приватов и протектов указывать дружественный класс
 public:
 
@@ -37,7 +37,7 @@ public:
         MemHeader.pFree = MemHeader.pfirst;
         MemHeader.plast = MemHeader.pfirst + (size - 1);
         PTTtextLink pLink = MemHeader.pfirst;
-        for (int i = 0; i < size; pLink++, i++) {
+        for (int i = 0; i < size - 1; pLink++, i++) {
             pLink->PNext = pLink + 1;
         }
         pLink->PNext = nullptr;
@@ -62,8 +62,21 @@ public:
         pLink->PNext = MemHeader.pFree;
         MemHeader.pFree = pLink;
     }
-    static void MemCleaner(const TText& txt) {
-
+    void MemCleaner( TText& txt) {
+        for (txt.Reset(); !txt.IsTextEnded(); txt.GoNext()) {
+            if (txt.GetLine().find("&&&")!=0) {
+                txt.SetLine("&&&" + txt.GetLine());
+            }
+        }
+        PTTtextLink Plink = MemHeader.pFree;
+        for (; Plink <= MemHeader.plast; Plink++) {
+            if (strstr(Plink->str, "&&&") != NULL) {
+                strcpy(Plink->str, Plink->str + 3);;
+            }
+            else {
+                delete Plink;
+            }
+        }
     }
 
     TTextLink(const Tstr s = NULL, PTTtextLink pn = NULL, PTTtextLink pd = NULL) {
