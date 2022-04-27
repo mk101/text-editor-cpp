@@ -6,6 +6,7 @@
 #include <fstream>
 #include<stack>
 #include<string>
+#include <sstream>
 #include <exception>
 
 typedef TText* PTText;
@@ -16,8 +17,10 @@ protected:
 	PTTtextLink pCurrent;//указатель текущей строки
 	std::stack<PTTtextLink> Path;// стек траектории движения по тексту
 	std::stack<PTTtextLink> St;// стек для итератора
+	std::stack<PTTtextLink> PrevSt;
 	PTTtextLink GetFirstAtom(PTTtextLink pl);// поиск первой строки
 	std::stringstream PrintText(PTTtextLink ptl);// печать текста со звена ptl
+	std::stringstream PrintTextInline(PTTtextLink ptl);
 	PTTtextLink ReadText(std::ifstream& Txtfile); //чтение текста из файла
 
 public:
@@ -45,11 +48,14 @@ public:
 	void DelDownSection(void); // удаление раздела в подуровне
 	void DelNextLine(void);// удаление строки в том же уровне
 	void DelNextSection(void);// удаление раздела в том же уровне
+	void DelCurrent();
 	int Reset(void); // установить на первую звапись
 	int IsTextEnded(void) const;
 	int GoNext(void);// переход к следующей записи
-	void Read(char* pFileName);// ввод текста из файла
-	void Write(char* pFileName);// вывод текста в файл
+	void GoPrev();
+	void Read(const char* pFileName);// ввод текста из файла
+	void Write(const char* pFileName);// вывод текста в файл
 	void Print(std::ostream &stream);// печать текста
+	void PrintInline(std::ostream &stream);
 };
 

@@ -15,41 +15,92 @@ PTTtextLink TText::GetFirstAtom(PTTtextLink pl)
 std::stringstream TText::PrintText(PTTtextLink ptl)
 {
     static int level = 0;
-    const int space_size = 4;
+    const int space_size = 1;
 
     PTTtextLink pLink = ptl;
     std::stringstream ss;
     while (pLink != nullptr) {
 
-        ss << std::string(space_size * level, ' ');
-        pLink->Print(ss);
-        ss << std::endl;
+        ss << std::string(space_size * level, '\t');
 
-        if (pLink->pDown != nullptr) {
-            ss << std::string(space_size * level, ' ') << '{' << std::endl;
+        //pLink->Print(ss);
+        ss << pLink->str;
+        
+        if (pLink->PNext != nullptr || pLink->PDown != nullptr) {
+            ss << std::endl;
+        }
+
+        if (pLink->PDown != nullptr) {
+            ss << std::string(space_size * level, '\t') << '{' << std::endl;
             level++;
             ss << PrintText(pLink->PDown).rdbuf();
             level--;
-            ss << std::string(space_size * level, ' ') << '}' << std::endl;
+            ss << std::string(space_size * level, '\t') << '}'/* << std::endl */ ;
+            if (pLink->PNext != nullptr) {
+                ss << std::endl;
+            }
         }
 
-        pLink = pLink->pNext;
+        pLink = pLink->PNext;
     }
 
+    if (level > 0) {
+        ss << std::endl;
+    }
 
     return ss;
 
+}
+
+std::stringstream TText::PrintTextInline(PTTtextLink ptl) {
+    static int level = 0;
+    const int space_size = 1;
+
+    PTTtextLink pLink = ptl;
+    std::stringstream ss;
+    while (pLink != nullptr) {
+
+        //pLink->Print(ss);
+        ss << pLink->str;
+
+        if (pLink->PDown != nullptr) {
+            ss << " { ";
+            level++;
+            ss << PrintTextInline(pLink->PDown).rdbuf();
+            level--;
+            ss << " } ";
+        }
+
+        pLink = pLink->PNext;
+    }
+
+    return ss;
 }
 
 PTTtextLink TText::ReadText(std::ifstream& Txtfile)
 {
     char Strbuff[TextLineLength];
     int Buflength = TextLineLength;
-    int textlevel;
+    int textlevel = 0;
     PTTtextLink PHead, ptl;
     PHead = ptl = new TTextLink();
     while (Txtfile.eof() == 0) {
         Txtfile.getline(Strbuff, Buflength, '\n');
+
+        std::string buf = Strbuff;
+        size_t count = 0;
+        for (size_t i = 0; i < buf.size(); i++) {
+            if (buf.at(i) != ' ') {
+                break;
+            }
+
+            count++;
+        }
+
+        buf.erase(0, count);
+        
+        strcpy(Strbuff, buf.c_str());
+
         if (Strbuff[0] == '}') {
             textlevel--;
             break;
@@ -64,7 +115,7 @@ PTTtextLink TText::ReadText(std::ifstream& Txtfile)
         }
     }
     ptl = PHead;
-    if (PHead->PDown = nullptr) {
+    if (PHead->PDown == nullptr) {
         PHead = PHead->PNext;
         delete ptl;
     }
@@ -84,9 +135,13 @@ int TText::Reset(void)
     while (!St.empty()) {
         St.pop();
     }
+
+    while (!PrevSt.empty()) {
+        PrevSt.pop();
+    }
     pCurrent = pFirst;
     if (pCurrent != nullptr) {
-        St.push(pCurrent);
+        //St.push(pCurrent);
         if (pCurrent->PNext != nullptr) {
             St.push(pCurrent->PNext);
         }
@@ -105,6 +160,7 @@ int TText::IsTextEnded(void) const
 int TText::GoNext(void)
 {
     if (!IsTextEnded()) {
+        PrevSt.push(pCurrent);
         pCurrent = St.top();
         St.pop();
         if (pCurrent != pFirst) {
@@ -119,16 +175,72 @@ int TText::GoNext(void)
     return IsTextEnded();
 }
 
-void TText::Read(char* pFileName) {
-	throw std::runtime_error("No implementation");
+void TText::GoPrev() {
+    if (PrevSt.size() != 0) {
+        pCurrent = PrevSt.top();
+        PrevSt.pop();
+
+        while (!St.empty()) {
+            St.pop();
+        }
+
+        //if (pCurrent != nullptr) {
+        //    St.push(pCurrent);
+        //    if (pCurrent->PNext != nullptr) {
+        //        St.push(pCurrent->PNext);
+        //    }
+        //    if (pCurrent->PDown != nullptr) {
+        //        St.push(pCurrent->PDown);
+        //    }
+        //}
+
+        PTTtextLink ptr = pFirst;
+
+        if (ptr != nullptr) {
+            //St.push(ptr);
+            if (ptr->PNext != nullptr) {
+                St.push(ptr->PNext);
+            }
+            if (ptr->PDown != nullptr) {
+                St.push(ptr->PDown);
+            }
+        }
+
+        while (ptr != pCurrent) {
+            ptr = St.top();
+            St.pop();
+            if (ptr != pFirst) {
+                if (ptr->PNext != nullptr) {
+                    St.push(ptr->PNext);
+                }
+                if (ptr->PDown != nullptr) {
+                    St.push(ptr->PDown);
+                }
+            }
+        }
+    }
 }
 
-void TText::Write(char* pFileName) {
+void TText::Read(const char* pFileName) {
+    std::ifstream file(pFileName);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("File not found");
+    }
+
+    pFirst = ReadText(file);
+}
+
+void TText::Write(const char* pFileName) {
 	throw std::runtime_error("No implementation");
 }
 
 void TText::Print(std::ostream& stream) {
-	throw std::runtime_error("No implementation");
+    stream << PrintText(pFirst).str();
+}
+
+void TText::PrintInline(std::ostream& stream) {
+    stream << PrintTextInline(pFirst).str();
 }
 
 PTText TText::getCopy()
@@ -168,7 +280,15 @@ int TText::GoNextLink(void) {
 }
 
 int TText::GoPrevLink(void) {
-	return DataErr;
+    SetRetCode(TextError);
+
+    if (Path.size() != 0) {
+        pCurrent = Path.top();
+        Path.pop();
+        SetRetCode(DataOK);
+    }
+
+    return RetCode;
 }
 
 std::string TText::GetLine(void) {
@@ -176,7 +296,7 @@ std::string TText::GetLine(void) {
 }
 
 void TText::SetLine(std::string s) {
-	throw std::runtime_error("No implementation");
+    strcpy(pCurrent->str, s.c_str());
 }
 
 void TText::InsDownLine(std::string s)
@@ -207,7 +327,6 @@ void TText::InsDownSection(std::string s)
         PTTtextLink pd = pCurrent->PDown;
         PTTtextLink pl = new TTextLink("", nullptr, pd);
         strncpy(pl->str, s.c_str(),TextLineLength);
-        pl->str[TextLineLength];
         pCurrent->PDown = pl;
         SetRetCode(TextOK);
 
@@ -225,15 +344,22 @@ void TText::InsNextLine(std::string s)
         pCurrent->PNext;
         PTTtextLink pl = new TTextLink("", nullptr, pn);
         strncpy(pl->str, s.c_str(), TextLineLength);
-        pl->str[TextLineLength];
         pCurrent->PNext = pl;
 
     }
 }
 
-void TText::InsNextSection(std::string s)
-{
+void TText::InsNextSection(std::string s) {
+    if (pCurrent == nullptr) {
+        SetRetCode(TextError);
+    } else {
+        PTTtextLink pn = pCurrent->PNext;
+        pCurrent->PNext;
+        PTTtextLink pl = new TTextLink("", pn, nullptr);
+        strncpy(pl->str, s.c_str(), TextLineLength);
+        pCurrent->PNext = pl;
 
+    }
 }
 
 void TText::DelDownLine(void)
@@ -273,6 +399,25 @@ void TText::DelNextLine(void)
 
 }
 
-void TText::DelNextSection(void)
-{
+void TText::DelCurrent() {
+    PTTtextLink cur = pCurrent;
+
+    if (cur == pFirst) {
+        pFirst = cur->PNext;
+        return;
+    }
+
+    Reset();
+
+    while (pCurrent->PNext != cur && pCurrent->PDown != cur) {
+        GoNext();
+    }
+
+
+    if (pCurrent->PDown == cur) {
+        pCurrent->PDown = cur->PNext;
+        return;
+    }
+
+    pCurrent->PNext = cur->PNext;
 }

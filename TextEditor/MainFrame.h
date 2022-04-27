@@ -7,8 +7,15 @@
 #include <wx/stc/stc.h>
 #include <wx/wfstream.h>
 
+#include <Windows.h>
+
+#include <core.h>
+
 enum class MainFrameMenuId {
-	ID_OpenFile = 1
+	ID_OpenFile = 1,
+	ID_CharAdded = 2,
+	ID_SaveFile = 3,
+	ID_Exec = 4
 };
 
 enum {
@@ -21,13 +28,27 @@ public:
 	MainFrame();
 private:
 	wxStyledTextCtrl *m_TextCtrl;
+	TText m_Text;
+	size_t m_CurLinePosition = 0;
+	std::string m_PathToFile;
+
+	char GetPressedChar(wxKeyEvent& e) const;
+
 	void InitMenu();
 
 	void OnOpenFile(wxCommandEvent& event);
+	void OnSaveFile(wxCommandEvent& event);
+	void OnExecute(wxCommandEvent& event);
 	void OnExit(wxCommandEvent& event);
+
+	void OnCharAdded(wxStyledTextEvent &evt);
+	void OnKeyDown(wxKeyEvent &evt);
+	void OnMouseDown(wxMouseEvent &evt);
 
 	// Use https://github.com/akamud/vscode-theme-onelight colors
 	void SetTextStyle();
 	void EnableCodeFolding();
+
+	//wxDECLARE_EVENT_TABLE();
 };
 
