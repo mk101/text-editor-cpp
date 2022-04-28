@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include "TDatValue.h"
-
+#include"TText.h"
 #define TextOK 0
 #define TextNoDown 101
 #define TextNoNext 102
@@ -15,11 +15,11 @@ class TText;
 class TTextLink;
 
 typedef TTextLink* PTTtextLink;
-typedef char Tstr[(TextLineLength)];//харнит строчку
+typedef char Tstr[(TextLineLength)];//хранит строчку
 class TTextMem {
     PTTtextLink pfirst;
     PTTtextLink plast;
-    PTTtextLink pFree;//первый свобоныйй эл-т
+    PTTtextLink pFree;//первый свобоный эл-т
     friend class TTextLink;
 
 };
@@ -62,8 +62,21 @@ public:
         pLink->PNext = MemHeader.pFree;
         MemHeader.pFree = pLink;
     }
-    static void MemCleaner(const TText& txt) {
-
+    void MemCleaner( TText& txt) {
+        for (txt.Reset(); !txt.IsTextEnded(); txt.GoNext()) {
+            if (txt.GetLine().find("&&&")!=0) {
+                txt.SetLine("&&&" + txt.GetLine());
+            }
+        }
+        PTTtextLink Plink = MemHeader.pFree;
+        for (; Plink <= MemHeader.plast; Plink++) {
+            if (strstr(Plink->str, "&&&") != NULL) {
+                strcpy(Plink->str, Plink->str + 3);;
+            }
+            else {
+                delete Plink;
+            }
+        }
     }
 
     TTextLink(const Tstr s = NULL, PTTtextLink pn = NULL, PTTtextLink pd = NULL) {
