@@ -57,5 +57,9 @@ public:
 	void Write(const char* pFileName);// вывод текста в файл
 	void Print(std::ostream &stream);// печать текста
 	void PrintInline(std::ostream &stream);
+
+	bool IsFirst() const {
+		return pCurrent == pFirst;
+	}
 };
 

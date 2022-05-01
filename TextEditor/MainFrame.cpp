@@ -1,16 +1,47 @@
 #include "MainFrame.h"
 
+std::string NormalazeString(const std::string& a) {
+
+	std::string buf = std::string(a);
+
+	size_t count = 0;
+	for (size_t i = 0; i < buf.size(); i++) {
+		if (buf.at(i) != '\t') {
+			break;
+		}
+
+		count++;
+	}
+	buf.erase(0, count);
+
+	if (!buf.empty() && buf[buf.size() - 1] == '\n') {
+		buf.pop_back();
+	}
+
+	return buf;
+}
+
 MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, "Text editor"), 
 						 m_Text(new TTextLink("", nullptr, nullptr)) {
 	m_PathToFile = "";
 	m_Text.Reset();
 
+	//wxPanel* panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(200, 100));
+	wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
+	m_TextCtrl = new wxStyledTextCtrl(this, wxID_ANY);
+	m_Tree = new wxTreeCtrl(this, wxID_ANY);
+
+	sizer->Add(m_TextCtrl, 5, wxEXPAND);
+	sizer->Add(m_Tree, 1, wxEXPAND);
+
+	SetSizerAndFit(sizer);
+
+	m_TextCtrl->SetFocus();
 	InitMenu();
 
 	CreateStatusBar();
 	//SetStatusText("TBC");
 
-	m_TextCtrl = new wxStyledTextCtrl(this, wxID_ANY);
 	SetTextStyle();
 	//m_TextCtrl->Bind(wxEVT_STC_CHARADDED, &MainFrame::OnCharAdded);
 	m_TextCtrl->Connect(wxEVT_STC_CHARADDED, wxStyledTextEventHandler(MainFrame::OnCharAdded), NULL, this);
@@ -18,13 +49,10 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, "Text editor"),
 	m_TextCtrl->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MainFrame::OnMouseDown), NULL, this);
 	m_TextCtrl->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(MainFrame::OnMouseDown), NULL, this);
 
-	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-	sizer->Add(m_TextCtrl, 1, wxEXPAND);
-	SetSizer(sizer);
-
 	Bind(wxEVT_MENU, &MainFrame::OnOpenFile, this, (int)MainFrameMenuId::ID_OpenFile);
 	Bind(wxEVT_MENU, &MainFrame::OnSaveFile, this, (int)MainFrameMenuId::ID_SaveFile);
 	Bind(wxEVT_MENU, &MainFrame::OnExecute, this, (int)MainFrameMenuId::ID_Exec);
+	Bind(wxEVT_MENU, &MainFrame::OnUpdate, this, (int)MainFrameMenuId::ID_Update);
 	Bind(wxEVT_MENU, &MainFrame::OnExit, this, wxID_EXIT);
 }
 
@@ -47,8 +75,12 @@ void MainFrame::InitMenu() {
 	menuFile->Append((int)MainFrameMenuId::ID_Exec, "&Execude File");
 	menuFile->AppendSeparator();
 	menuFile->Append(wxID_EXIT);
+
+	wxMenu* menuTree = new wxMenu;
+	menuTree->Append((int)MainFrameMenuId::ID_Update, "&Update tree");
 	wxMenuBar* menuBar = new wxMenuBar;
 	menuBar->Append(menuFile, "&File");
+	menuBar->Append(menuTree, "&Tree");
 	SetMenuBar(menuBar);
 }
 
@@ -130,6 +162,11 @@ void MainFrame::OnExecute(wxCommandEvent& event) {
 	FreeConsole();
 }
 
+void MainFrame::OnUpdate(wxCommandEvent& event) {
+	m_Tree->DeleteAllItems();
+	UpdateTree();
+}
+
 void MainFrame::OnExit(wxCommandEvent& event) {
 	Close(true);
 }
@@ -169,9 +206,54 @@ void MainFrame::OnKeyDown(wxKeyEvent &evt) {
 	//int curPosition = m_TextCtrl->GetCurP
 	
 	switch (evt.GetKeyCode()) {
-	case 315:
-	case 317:
+	case 315: {
+		if (m_Text.IsFirst()) {
+			return;
+		}
+		m_TextCtrl->LineUp();
+		int startLine = m_TextCtrl->GetLineIndentPosition(m_TextCtrl->GetCurrentLine());
+		m_TextCtrl->SetSelection(startLine, startLine);
+
+		while (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '\t') {
+			m_TextCtrl->CharRight();
+		}
+
+		if (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '{' || m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '}') {
+			m_TextCtrl->LineUp();
+		}
+
+		startLine = m_TextCtrl->GetLineIndentPosition(m_TextCtrl->GetCurrentLine());
+		m_TextCtrl->SetSelection(startLine, startLine);
+
+		while (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '\t') {
+			m_TextCtrl->CharRight();
+		}
+
+		m_CurLinePosition = 0;
+		m_Text.GoPrev();
 		return;
+	}
+	case 317: {
+		if (m_Text.IsTextEnded()) {
+			return;
+		}
+		m_TextCtrl->LineDown();
+		int startLine = m_TextCtrl->GetLineIndentPosition(m_TextCtrl->GetCurrentLine());
+		m_TextCtrl->SetSelectionEnd(startLine);
+
+		if (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '{' || m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '}') {
+			m_TextCtrl->CharRight();
+			m_TextCtrl->CharRight();
+		}
+
+		while (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '\t') {
+			m_TextCtrl->CharRight();
+		}
+
+		m_CurLinePosition = 0;
+		m_Text.GoNext();
+		return;
+	}
 	case 316:
 		if (m_CurLinePosition == m_Text.GetLine().size()) {
 			if (m_Text.IsTextEnded()) {
@@ -188,6 +270,11 @@ void MainFrame::OnKeyDown(wxKeyEvent &evt) {
 
 			while (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '\t') {
 				m_TextCtrl->CharRight();
+
+				if (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '{' || m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '}') {
+					m_TextCtrl->CharRight();
+					m_TextCtrl->CharRight();
+				}
 			}
 
 			return;
@@ -206,8 +293,12 @@ void MainFrame::OnKeyDown(wxKeyEvent &evt) {
 
 			while (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos()) == '\t') {
 				m_TextCtrl->CharLeft();
-			}
 
+				if (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos() - 1) == '{' || m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos() - 1) == '}') {
+					m_TextCtrl->CharLeft();
+					m_TextCtrl->CharLeft();
+				}
+			}
 
 			if (m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos() - 1) == '{' || m_TextCtrl->GetCharAt(m_TextCtrl->GetCurrentPos() - 1) == '}') {
 				m_TextCtrl->CharLeft();
@@ -238,7 +329,7 @@ void MainFrame::OnKeyDown(wxKeyEvent &evt) {
 			}
 			buf.erase(0, count);
 
-			if (buf[buf.size() - 1] == '\n') {
+			if (!buf.empty() && buf[buf.size() - 1] == '\n') {
 				buf.pop_back();
 			}
 
@@ -262,7 +353,31 @@ void MainFrame::OnKeyDown(wxKeyEvent &evt) {
 		return;
 	case 13:
 		auto pos = m_TextCtrl->GetCurrentPos();
-		m_Text.InsNextSection("");
+		
+		std::string buf = m_TextCtrl->GetCurLine().ToStdString();
+
+		size_t count = 0;
+		for (size_t i = 0; i < buf.size(); i++) {
+			if (buf.at(i) != '\t') {
+				break;
+			}
+
+			count++;
+		}
+		buf.erase(0, count);
+
+		if (!buf.empty() && (buf[buf.size() - 1] == '\n' || buf[buf.size() - 1] == ' ')) {
+			buf.pop_back();
+		}
+
+		if ( !buf.empty() && buf[buf.size() - 1] == '{') {
+			buf.pop_back();
+			m_Text.SetLine(buf);
+			m_Text.InsDownLine("");
+		} else {
+			m_Text.InsNextSection("");
+		}
+		
 		std::stringstream ss;
 		m_Text.Print(ss);
 		m_TextCtrl->SetText(ss.str());
@@ -311,7 +426,7 @@ void MainFrame::OnKeyDown(wxKeyEvent &evt) {
 }
 
 void MainFrame::OnMouseDown(wxMouseEvent& evt) {
-	int a = 0;
+	m_TextCtrl->SetFocus();
 }
 
 void MainFrame::SetTextStyle() {
@@ -398,8 +513,40 @@ void MainFrame::EnableCodeFolding() {
 	m_TextCtrl->MarkerSetBackground(wxSTC_MARKNUM_FOLDERTAIL, grey);
 }
 
-//wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
-//
-//EVT_STC(wxEVT_STC_CHARADDED, MainFrame::OnCharAdded)
-//
-//wxEND_EVENT_TABLE()
+void MainFrame::UpdateTree() {
+	wxTreeItemId root = m_Tree->AddRoot("Корень");
+	wxTreeItemId prevId;
+	std::stack<wxTreeItemId> stack;
+
+	stack.push(root);
+
+	int size = m_TextCtrl->GetLineCount();
+
+	for (int i = 0; i < size; i++) {
+		std::string buf = m_TextCtrl->GetCurLine().ToStdString();
+		buf = NormalazeString(buf);
+
+		if (buf == "{") {
+			stack.push(prevId);
+
+			m_TextCtrl->LineDown();
+			continue;
+		} 
+
+		if (buf == "}") {
+			stack.pop();
+			m_TextCtrl->LineDown();
+			continue;
+		}
+
+		if (buf.empty()) {
+			m_TextCtrl->LineDown();
+			continue;
+		}
+
+		prevId = m_Tree->AppendItem(stack.top(), buf);
+		m_TextCtrl->LineDown();
+	}
+}
+
+
