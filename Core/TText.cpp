@@ -402,6 +402,10 @@ void TText::DelNextLine(void)
 void TText::DelCurrent() {
     PTTtextLink cur = pCurrent;
 
+    if (cur == pFirst && pFirst->PNext == nullptr) {
+        return;
+    }
+
     if (cur == pFirst) {
         pFirst = cur->PNext;
         return;
